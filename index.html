@@ -3,714 +3,152 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>日本語ドリル — Japanese Drill</title>
+  <title>日本語ドリル — Flashcard Drill</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     * { -webkit-tap-highlight-color: transparent; }
     body { font-family: "Hiragino Sans", "Noto Sans CJK JP", "Yu Gothic", -apple-system, sans-serif; }
-    .quiz-char {
-      font-size: clamp(5rem, 25vw, 10rem);
-      line-height: 1.2;
-      font-weight: 700;
-    }
-    .quiz-reading { font-size: clamp(1.2rem, 5vw, 2rem); }
-    .option-btn {
-      padding: 1rem;
-      border-radius: 1rem;
-      font-size: 1.125rem;
-      font-weight: 500;
-      transition: all 0.15s;
-      border: 2px solid #e5e7eb;
-      background: #fff;
-      width: 100%;
-      text-align: center;
-      cursor: pointer;
-      user-select: none;
-    }
-    .option-btn:active { transform: scale(0.97); }
-    .option-btn.correct { border-color: #22c55e; background: #f0fdf4; color: #166534; }
-    .option-btn.wrong { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
-    .option-btn.reveal { border-color: #22c55e; background: #f0fdf4; color: #166534; }
-    .option-btn:disabled { cursor: default; opacity: 0.7; }
-    .option-btn:disabled:active { transform: none; }
-    .mode-tab {
-      padding: 0.5rem 1rem;
-      border-radius: 0.75rem;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: all 0.15s;
-      cursor: pointer;
-      user-select: none;
-    }
-    .mode-tab.active { background: #dc2626; color: #fff; }
-    .mode-tab:not(.active) { background: #f3f4f6; color: #6b7280; }
-    .mode-tab:not(.active):active { background: #e5e7eb; }
-    .sub-tab {
-      padding: 0.35rem 0.75rem;
-      border-radius: 9999px;
-      font-size: 0.8rem;
-      font-weight: 500;
-      transition: all 0.15s;
-      cursor: pointer;
-      user-select: none;
-    }
-    .sub-tab.active { background: #dc2626; color: #fff; }
-    .sub-tab:not(.active) { background: #fff; color: #6b7280; border: 1.5px solid #e5e7eb; }
-    .sub-tab:not(.active):active { background: #f3f4f6; }
-    .stat-box { text-align: center; padding: 0.375rem 0.75rem; border-radius: 0.5rem; }
-    .fade-in { animation: fadeIn 0.2s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-    .slide-up { animation: slideUp 0.25s ease-out; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    .shake { animation: shake 0.3s; }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-6px); }
-      75% { transform: translateX(6px); }
-    }
+    .card-scene { perspective:1200px; width:100%; aspect-ratio:4/3; max-height:56vh; cursor:pointer; user-select:none; }
+    .card-inner { position:relative; width:100%; height:100%; transition:transform .45s ease; transform-style:preserve-3d; }
+    .card-inner.flipped { transform:rotateY(180deg); }
+    .card-face { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:1.25rem; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:1.5rem; }
+    .card-front { background:#fff; border:1.5px solid #e5e7eb; z-index:2; }
+    .card-back { background:#fefce8; border:1.5px solid #fde68a; transform:rotateY(180deg); }
+    .char-main { font-size:clamp(4rem,20vw,8rem); font-weight:700; line-height:1.1; text-align:center; word-break:keep-all; }
+    .char-sub { font-size:clamp(1rem,4vw,1.5rem); color:#94a3b8; margin-top:.25rem; }
+    .char-tip { font-size:clamp(.85rem,2.5vw,1.05rem); color:#a16207; background:#fef9c3; padding:.5rem 1rem; border-radius:.75rem; margin-top:.75rem; max-width:90%; text-align:center; line-height:1.4; }
+    .assess-btn { padding:.85rem 1.5rem; border-radius:1rem; font-size:1.05rem; font-weight:600; transition:all .15s; border:none; cursor:pointer; user-select:none; flex:1; }
+    .assess-btn:active { transform:scale(.96); }
+    .assess-btn:disabled { opacity:.4; cursor:default; transform:none; }
+    .btn-gotit { background:#dcfce7; color:#166534; }
+    .btn-gotit:not(:disabled):hover { background:#bbf7d0; }
+    .btn-again { background:#fef3c7; color:#92400e; }
+    .btn-again:not(:disabled):hover { background:#fde68a; }
+    .mode-tab { padding:.5rem 1rem; border-radius:.75rem; font-size:.9rem; font-weight:500; transition:all .15s; cursor:pointer; user-select:none; }
+    .mode-tab.active { background:#dc2626; color:#fff; }
+    .mode-tab:not(.active) { background:#f3f4f6; color:#6b7280; }
+    .sub-tab { padding:.35rem .75rem; border-radius:9999px; font-size:.8rem; font-weight:500; transition:all .15s; cursor:pointer; user-select:none; }
+    .sub-tab.active { background:#dc2626; color:#fff; }
+    .sub-tab:not(.active) { background:#fff; color:#6b7280; border:1.5px solid #e5e7eb; }
+    .stat-pill { display:inline-flex; align-items:center; gap:.25rem; padding:.3rem .7rem; border-radius:9999px; font-size:.8rem; font-weight:600; }
+    .fade-in { animation:fadeIn .25s ease-out; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .slide-up { animation:slideUp .3s ease-out; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+    .bounce-in { animation:bounceIn .35s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes bounceIn { from{opacity:0;transform:scale(.85)} to{opacity:1;transform:scale(1)} }
+    .shake { animation:shake .3s; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    .confetti-piece { position:fixed; width:10px; height:10px; animation:confettiFall 1.5s ease-out forwards; pointer-events:none; z-index:100; }
+    @keyframes confettiFall { 0%{opacity:1;transform:translateY(0) rotate(0deg) scale(1)} 100%{opacity:0;transform:translateY(200px) rotate(720deg) scale(.3)} }
+    .srs-badge { display:inline-block; padding:.2rem .6rem; border-radius:9999px; font-size:.7rem; font-weight:600; letter-spacing:.04em; }
+    .srs-badge.new { background:#dbeafe; color:#1e40af; }
+    .srs-badge.learning { background:#fef3c7; color:#92400e; }
+    .srs-badge.review { background:#dcfce7; color:#166534; }
+    .srs-badge.mastered { background:#e0e7ff; color:#3730a3; }
   </style>
 </head>
 <body class="bg-[#fafaf9] text-[#1e293b] min-h-screen flex flex-col">
   <div class="max-w-lg mx-auto w-full px-4 flex flex-col min-h-screen">
-    <!-- Header -->
-    <header class="pt-5 pb-3 text-center">
+    <header class="pt-4 pb-2 text-center">
       <h1 class="text-xl font-bold tracking-tight">日本語ドリル</h1>
-      <p class="text-xs text-[#94a3b8] mt-0.5">ひらがな · カタカナ · 単語</p>
+      <p class="text-xs text-[#94a3b8] mt-0.5">タップしてめくる — フラッシュカード</p>
     </header>
-
-    <!-- Mode Tabs -->
-    <div class="flex gap-2 justify-center mb-3">
+    <div class="flex gap-2 justify-center mb-2">
       <button class="mode-tab active" data-mode="hiragana" onclick="switchMode('hiragana')">ひらがな</button>
       <button class="mode-tab" data-mode="katakana" onclick="switchMode('katakana')">カタカナ</button>
       <button class="mode-tab" data-mode="vocab" onclick="switchMode('vocab')">単語</button>
     </div>
-
-    <!-- Sub-mode Tabs -->
-    <div id="subTabs" class="flex flex-wrap gap-2 justify-center mb-4">
-      <!-- populated by JS -->
+    <div id="subTabs" class="flex flex-wrap gap-2 justify-center mb-3"></div>
+    <div id="statsBar" class="flex items-center justify-center gap-2 mb-3 text-xs">
+      <span class="stat-pill bg-[#f0fdf4]">✅ <span id="sessionCorrect">0</span></span>
+      <span class="stat-pill bg-[#fef2f2]">🔄 <span id="sessionAgain">0</span></span>
+      <span class="stat-pill bg-[#fff7ed]">🔥 <span id="streakCount">0</span></span>
+      <span class="stat-pill bg-[#f1f5f9]">📝 <span id="todayCount">0</span></span>
     </div>
-
-    <!-- Stats Bar -->
-    <div class="flex items-center justify-center gap-4 mb-4 text-sm">
-      <div class="stat-box bg-[#f0fdf4]"><span class="text-[#22c55e] font-bold" id="correctCount">0</span></div>
-      <div class="stat-box bg-[#fef2f2]"><span class="text-[#ef4444] font-bold" id="wrongCount">0</span></div>
-      <div class="stat-box bg-[#fff7ed]"><span class="text-[#f97316] font-bold">🔥 <span id="streakCount">0</span></span></div>
-      <div class="stat-box bg-[#f1f5f9]"><span class="text-[#64748b] font-bold" id="totalCount">0</span></div>
+    <div class="flex items-center justify-between mb-2 text-xs text-[#94a3b8]">
+      <span id="progressLabel">0 / 0</span>
+      <span id="srsStatusBadge"></span>
     </div>
-
-    <!-- Progress Bar -->
-    <div class="w-full bg-[#e2e8f0] rounded-full h-1.5 mb-8 overflow-hidden">
+    <div class="w-full bg-[#e2e8f0] rounded-full h-1.5 mb-3 overflow-hidden">
       <div id="progressBar" class="h-full bg-[#dc2626] rounded-full transition-all duration-300" style="width:0%"></div>
     </div>
-
-    <!-- Quiz Area -->
-    <div id="quizArea" class="flex-1 flex flex-col items-center justify-center min-h-[320px]">
-      <div id="questionCard" class="w-full bg-white rounded-2xl shadow-sm border border-[#e5e7eb] p-8 slide-up">
-        <!-- Character Display -->
-        <div class="text-center mb-6">
-          <div id="charDisplay" class="quiz-char text-[#1e293b]">あ</div>
-          <div id="readingDisplay" class="quiz-reading text-[#94a3b8] mt-1 hidden"></div>
-        </div>
-        <!-- Options -->
-        <div id="optionsContainer" class="space-y-3">
-          <!-- populated by JS -->
+    <div id="quizArea" class="flex-1 flex flex-col items-center justify-center min-h-0">
+      <div id="emptyState" class="hidden text-center py-8 slide-up">
+        <div class="text-4xl mb-3">🎉</div>
+        <div class="text-lg font-bold">お疲れさま！</div>
+        <p class="text-sm text-[#94a3b8] mt-1" id="emptyStateMsg">今日の復習は終わりました</p>
+        <button onclick="resetSession()" class="mt-4 text-sm text-[#dc2626] font-medium underline underline-offset-2">もう一度始める</button>
+      </div>
+      <div id="cardWrapper" class="w-full card-scene" onclick="flipCard()">
+        <div id="cardInner" class="card-inner">
+          <div class="card-face card-front">
+            <div id="frontSrsBadge" class="srs-badge new mb-2"></div>
+            <div id="frontChar" class="char-main">あ</div>
+            <div id="frontSub" class="char-sub"></div>
+          </div>
+          <div class="card-face card-back">
+            <div id="backAnswer" class="char-main text-[#a16207]"></div>
+            <div id="backSub" class="char-sub text-[#a16207]"></div>
+            <div id="backTip" class="char-tip"></div>
+          </div>
         </div>
       </div>
+      <div id="assessArea" class="hidden w-full mt-4 flex gap-3 slide-up">
+        <button id="btnAgain" class="assess-btn btn-again" onclick="assessCard('again')">🔄 もう一度</button>
+        <button id="btnGotit" class="assess-btn btn-gotit" onclick="assessCard('gotit')">✅ わかった</button>
+      </div>
+      <p id="tapHint" class="text-xs text-[#94a3b8] mt-4 animate-pulse">タップして答えを見る</p>
     </div>
-
-    <!-- Feedback Area -->
-    <div id="feedbackArea" class="text-center min-h-[2rem] mb-4">
-      <div id="feedbackText" class="text-sm font-medium"></div>
-    </div>
-
-    <!-- Settings Footer -->
-    <footer class="pb-5 pt-2 text-center">
-      <button onclick="toggleDirection()" id="directionBtn" class="text-xs text-[#94a3b8] hover:text-[#64748b] transition-colors px-3 py-1.5 rounded-lg border border-[#e5e7eb]">
-        文字 → ローマ字
-      </button>
+    <footer class="pb-4 pt-3 text-center flex items-center justify-center gap-3">
+      <button onclick="toggleDirection()" id="directionBtn" class="text-xs text-[#94a3b8] hover:text-[#64748b] transition-colors px-3 py-1.5 rounded-lg border border-[#e5e7eb]">文字 → ローマ字</button>
+      <button onclick="resetAllProgress()" class="text-xs text-[#94a3b8] hover:text-[#ef4444] transition-colors px-3 py-1.5 rounded-lg border border-[#e5e7eb]">リセット</button>
     </footer>
   </div>
-
   <script>
-    // ================================================================
-    // DATA: Hiragana
-    // ================================================================
-    const HIRAGANA = {
-      basic: [
-        { char: 'あ', romaji: 'a' }, { char: 'い', romaji: 'i' }, { char: 'う', romaji: 'u' },
-        { char: 'え', romaji: 'e' }, { char: 'お', romaji: 'o' },
-        { char: 'か', romaji: 'ka' }, { char: 'き', romaji: 'ki' }, { char: 'く', romaji: 'ku' },
-        { char: 'け', romaji: 'ke' }, { char: 'こ', romaji: 'ko' },
-        { char: 'さ', romaji: 'sa' }, { char: 'し', romaji: 'shi' }, { char: 'す', romaji: 'su' },
-        { char: 'せ', romaji: 'se' }, { char: 'そ', romaji: 'so' },
-        { char: 'た', romaji: 'ta' }, { char: 'ち', romaji: 'chi' }, { char: 'つ', romaji: 'tsu' },
-        { char: 'て', romaji: 'te' }, { char: 'と', romaji: 'to' },
-        { char: 'な', romaji: 'na' }, { char: 'に', romaji: 'ni' }, { char: 'ぬ', romaji: 'nu' },
-        { char: 'ね', romaji: 'ne' }, { char: 'の', romaji: 'no' },
-        { char: 'は', romaji: 'ha' }, { char: 'ひ', romaji: 'hi' }, { char: 'ふ', romaji: 'fu' },
-        { char: 'へ', romaji: 'he' }, { char: 'ほ', romaji: 'ho' },
-        { char: 'ま', romaji: 'ma' }, { char: 'み', romaji: 'mi' }, { char: 'む', romaji: 'mu' },
-        { char: 'め', romaji: 'me' }, { char: 'も', romaji: 'mo' },
-        { char: 'や', romaji: 'ya' }, { char: 'ゆ', romaji: 'yu' }, { char: 'よ', romaji: 'yo' },
-        { char: 'ら', romaji: 'ra' }, { char: 'り', romaji: 'ri' }, { char: 'る', romaji: 'ru' },
-        { char: 'れ', romaji: 're' }, { char: 'ろ', romaji: 'ro' },
-        { char: 'わ', romaji: 'wa' }, { char: 'を', romaji: 'wo' }, { char: 'ん', romaji: 'n' }
-      ],
-      dakuten: [
-        { char: 'が', romaji: 'ga' }, { char: 'ぎ', romaji: 'gi' }, { char: 'ぐ', romaji: 'gu' },
-        { char: 'げ', romaji: 'ge' }, { char: 'ご', romaji: 'go' },
-        { char: 'ざ', romaji: 'za' }, { char: 'じ', romaji: 'ji' }, { char: 'ず', romaji: 'zu' },
-        { char: 'ぜ', romaji: 'ze' }, { char: 'ぞ', romaji: 'zo' },
-        { char: 'だ', romaji: 'da' }, { char: 'ぢ', romaji: 'ji' }, { char: 'づ', romaji: 'zu' },
-        { char: 'で', romaji: 'de' }, { char: 'ど', romaji: 'do' },
-        { char: 'ば', romaji: 'ba' }, { char: 'び', romaji: 'bi' }, { char: 'ぶ', romaji: 'bu' },
-        { char: 'べ', romaji: 'be' }, { char: 'ぼ', romaji: 'bo' }
-      ],
-      handakuten: [
-        { char: 'ぱ', romaji: 'pa' }, { char: 'ぴ', romaji: 'pi' }, { char: 'ぷ', romaji: 'pu' },
-        { char: 'ぺ', romaji: 'pe' }, { char: 'ぽ', romaji: 'po' }
-      ],
-      youon: [
-        { char: 'きゃ', romaji: 'kya' }, { char: 'きゅ', romaji: 'kyu' }, { char: 'きょ', romaji: 'kyo' },
-        { char: 'しゃ', romaji: 'sha' }, { char: 'しゅ', romaji: 'shu' }, { char: 'しょ', romaji: 'sho' },
-        { char: 'ちゃ', romaji: 'cha' }, { char: 'ちゅ', romaji: 'chu' }, { char: 'ちょ', romaji: 'cho' },
-        { char: 'にゃ', romaji: 'nya' }, { char: 'にゅ', romaji: 'nyu' }, { char: 'にょ', romaji: 'nyo' },
-        { char: 'ひゃ', romaji: 'hya' }, { char: 'ひゅ', romaji: 'hyu' }, { char: 'ひょ', romaji: 'hyo' },
-        { char: 'みゃ', romaji: 'mya' }, { char: 'みゅ', romaji: 'myu' }, { char: 'みょ', romaji: 'myo' },
-        { char: 'りゃ', romaji: 'rya' }, { char: 'りゅ', romaji: 'ryu' }, { char: 'りょ', romaji: 'ryo' },
-        { char: 'ぎゃ', romaji: 'gya' }, { char: 'ぎゅ', romaji: 'gyu' }, { char: 'ぎょ', romaji: 'gyo' },
-        { char: 'じゃ', romaji: 'ja' }, { char: 'じゅ', romaji: 'ju' }, { char: 'じょ', romaji: 'jo' },
-        { char: 'びゃ', romaji: 'bya' }, { char: 'びゅ', romaji: 'byu' }, { char: 'びょ', romaji: 'byo' },
-        { char: 'ぴゃ', romaji: 'pya' }, { char: 'ぴゅ', romaji: 'pyu' }, { char: 'ぴょ', romaji: 'pyo' }
-      ]
-    };
-
-    // ================================================================
-    // DATA: Katakana
-    // ================================================================
-    const KATAKANA = {
-      basic: [
-        { char: 'ア', romaji: 'a' }, { char: 'イ', romaji: 'i' }, { char: 'ウ', romaji: 'u' },
-        { char: 'エ', romaji: 'e' }, { char: 'オ', romaji: 'o' },
-        { char: 'カ', romaji: 'ka' }, { char: 'キ', romaji: 'ki' }, { char: 'ク', romaji: 'ku' },
-        { char: 'ケ', romaji: 'ke' }, { char: 'コ', romaji: 'ko' },
-        { char: 'サ', romaji: 'sa' }, { char: 'シ', romaji: 'shi' }, { char: 'ス', romaji: 'su' },
-        { char: 'セ', romaji: 'se' }, { char: 'ソ', romaji: 'so' },
-        { char: 'タ', romaji: 'ta' }, { char: 'チ', romaji: 'chi' }, { char: 'ツ', romaji: 'tsu' },
-        { char: 'テ', romaji: 'te' }, { char: 'ト', romaji: 'to' },
-        { char: 'ナ', romaji: 'na' }, { char: 'ニ', romaji: 'ni' }, { char: 'ヌ', romaji: 'nu' },
-        { char: 'ネ', romaji: 'ne' }, { char: 'ノ', romaji: 'no' },
-        { char: 'ハ', romaji: 'ha' }, { char: 'ヒ', romaji: 'hi' }, { char: 'フ', romaji: 'fu' },
-        { char: 'ヘ', romaji: 'he' }, { char: 'ホ', romaji: 'ho' },
-        { char: 'マ', romaji: 'ma' }, { char: 'ミ', romaji: 'mi' }, { char: 'ム', romaji: 'mu' },
-        { char: 'メ', romaji: 'me' }, { char: 'モ', romaji: 'mo' },
-        { char: 'ヤ', romaji: 'ya' }, { char: 'ユ', romaji: 'yu' }, { char: 'ヨ', romaji: 'yo' },
-        { char: 'ラ', romaji: 'ra' }, { char: 'リ', romaji: 'ri' }, { char: 'ル', romaji: 'ru' },
-        { char: 'レ', romaji: 're' }, { char: 'ロ', romaji: 'ro' },
-        { char: 'ワ', romaji: 'wa' }, { char: 'ヲ', romaji: 'wo' }, { char: 'ン', romaji: 'n' }
-      ],
-      dakuten: [
-        { char: 'ガ', romaji: 'ga' }, { char: 'ギ', romaji: 'gi' }, { char: 'グ', romaji: 'gu' },
-        { char: 'ゲ', romaji: 'ge' }, { char: 'ゴ', romaji: 'go' },
-        { char: 'ザ', romaji: 'za' }, { char: 'ジ', romaji: 'ji' }, { char: 'ズ', romaji: 'zu' },
-        { char: 'ゼ', romaji: 'ze' }, { char: 'ゾ', romaji: 'zo' },
-        { char: 'ダ', romaji: 'da' }, { char: 'ヂ', romaji: 'ji' }, { char: 'ヅ', romaji: 'zu' },
-        { char: 'デ', romaji: 'de' }, { char: 'ド', romaji: 'do' },
-        { char: 'バ', romaji: 'ba' }, { char: 'ビ', romaji: 'bi' }, { char: 'ブ', romaji: 'bu' },
-        { char: 'ベ', romaji: 'be' }, { char: 'ボ', romaji: 'bo' }
-      ],
-      handakuten: [
-        { char: 'パ', romaji: 'pa' }, { char: 'ピ', romaji: 'pi' }, { char: 'プ', romaji: 'pu' },
-        { char: 'ペ', romaji: 'pe' }, { char: 'ポ', romaji: 'po' }
-      ],
-      youon: [
-        { char: 'キャ', romaji: 'kya' }, { char: 'キュ', romaji: 'kyu' }, { char: 'キョ', romaji: 'kyo' },
-        { char: 'シャ', romaji: 'sha' }, { char: 'シュ', romaji: 'shu' }, { char: 'ショ', romaji: 'sho' },
-        { char: 'チャ', romaji: 'cha' }, { char: 'チュ', romaji: 'chu' }, { char: 'チョ', romaji: 'cho' },
-        { char: 'ニャ', romaji: 'nya' }, { char: 'ニュ', romaji: 'nyu' }, { char: 'ニョ', romaji: 'nyo' },
-        { char: 'ヒャ', romaji: 'hya' }, { char: 'ヒュ', romaji: 'hyu' }, { char: 'ヒョ', romaji: 'hyo' },
-        { char: 'ミャ', romaji: 'mya' }, { char: 'ミュ', romaji: 'myu' }, { char: 'ミョ', romaji: 'myo' },
-        { char: 'リャ', romaji: 'rya' }, { char: 'リュ', romaji: 'ryu' }, { char: 'リョ', romaji: 'ryo' },
-        { char: 'ギャ', romaji: 'gya' }, { char: 'ギュ', romaji: 'gyu' }, { char: 'ギョ', romaji: 'gyo' },
-        { char: 'ジャ', romaji: 'ja' }, { char: 'ジュ', romaji: 'ju' }, { char: 'ジョ', romaji: 'jo' },
-        { char: 'ビャ', romaji: 'bya' }, { char: 'ビュ', romaji: 'byu' }, { char: 'ビョ', romaji: 'byo' },
-        { char: 'ピャ', romaji: 'pya' }, { char: 'ピュ', romaji: 'pyu' }, { char: 'ピョ', romaji: 'pyo' }
-      ]
-    };
-
-    // ================================================================
-    // DATA: Vocabulary (N5-N3)
-    // ================================================================
-    const VOCAB = [
-      // ── N5 ──
-      { word: '食べる', reading: 'たべる', meaning: '吃', level: 'N5' },
-      { word: '飲む', reading: 'のむ', meaning: '喝', level: 'N5' },
-      { word: '行く', reading: 'いく', meaning: '去', level: 'N5' },
-      { word: '来る', reading: 'くる', meaning: '來', level: 'N5' },
-      { word: '帰る', reading: 'かえる', meaning: '回去', level: 'N5' },
-      { word: '見る', reading: 'みる', meaning: '看', level: 'N5' },
-      { word: '聞く', reading: 'きく', meaning: '聽', level: 'N5' },
-      { word: '話す', reading: 'はなす', meaning: '說', level: 'N5' },
-      { word: '読む', reading: 'よむ', meaning: '讀', level: 'N5' },
-      { word: '書く', reading: 'かく', meaning: '寫', level: 'N5' },
-      { word: '買う', reading: 'かう', meaning: '買', level: 'N5' },
-      { word: '待つ', reading: 'まつ', meaning: '等待', level: 'N5' },
-      { word: '持つ', reading: 'もつ', meaning: '拿、擁有', level: 'N5' },
-      { word: '住む', reading: 'すむ', meaning: '居住', level: 'N5' },
-      { word: '知る', reading: 'しる', meaning: '知道', level: 'N5' },
-      { word: '分かる', reading: 'わかる', meaning: '懂、明白', level: 'N5' },
-      { word: 'ある', reading: 'ある', meaning: '有（物）', level: 'N5' },
-      { word: 'いる', reading: 'いる', meaning: '有（人）', level: 'N5' },
-      { word: 'する', reading: 'する', meaning: '做', level: 'N5' },
-      { word: '勉強する', reading: 'べんきょうする', meaning: '學習', level: 'N5' },
-      { word: '仕事する', reading: 'しごとする', meaning: '工作', level: 'N5' },
-      { word: '大きい', reading: 'おおきい', meaning: '大的', level: 'N5' },
-      { word: '小さい', reading: 'ちいさい', meaning: '小的', level: 'N5' },
-      { word: '新しい', reading: 'あたらしい', meaning: '新的', level: 'N5' },
-      { word: '古い', reading: 'ふるい', meaning: '舊的', level: 'N5' },
-      { word: '高い', reading: 'たかい', meaning: '貴的、高的', level: 'N5' },
-      { word: '安い', reading: 'やすい', meaning: '便宜的', level: 'N5' },
-      { word: '暑い', reading: 'あつい', meaning: '熱的', level: 'N5' },
-      { word: '寒い', reading: 'さむい', meaning: '冷的', level: 'N5' },
-      { word: '美味しい', reading: 'おいしい', meaning: '好吃的', level: 'N5' },
-      { word: '楽しい', reading: 'たのしい', meaning: '快樂的', level: 'N5' },
-      { word: '忙しい', reading: 'いそがしい', meaning: '忙碌的', level: 'N5' },
-      { word: '早い', reading: 'はやい', meaning: '快的、早的', level: 'N5' },
-      { word: '好き', reading: 'すき', meaning: '喜歡', level: 'N5' },
-      { word: '元気', reading: 'げんき', meaning: '健康的、有精神', level: 'N5' },
-      { word: '便利', reading: 'べんり', meaning: '方便', level: 'N5' },
-      { word: '天気', reading: 'てんき', meaning: '天氣', level: 'N5' },
-      { word: '時間', reading: 'じかん', meaning: '時間', level: 'N5' },
-      { word: '場所', reading: 'ばしょ', meaning: '地方、場所', level: 'N5' },
-      { word: '電話', reading: 'でんわ', meaning: '電話', level: 'N5' },
-      { word: '名前', reading: 'なまえ', meaning: '名字', level: 'N5' },
-      { word: '会社', reading: 'かいしゃ', meaning: '公司', level: 'N5' },
-      { word: '学校', reading: 'がっこう', meaning: '學校', level: 'N5' },
-      { word: '病院', reading: 'びょういん', meaning: '醫院', level: 'N5' },
-      { word: '駅', reading: 'えき', meaning: '車站', level: 'N5' },
-      { word: '銀行', reading: 'ぎんこう', meaning: '銀行', level: 'N5' },
-      { word: '公園', reading: 'こうえん', meaning: '公園', level: 'N5' },
-      { word: '図書館', reading: 'としょかん', meaning: '圖書館', level: 'N5' },
-      { word: '店', reading: 'みせ', meaning: '商店', level: 'N5' },
-      { word: '家', reading: 'いえ', meaning: '房子、家', level: 'N5' },
-      { word: '部屋', reading: 'へや', meaning: '房間', level: 'N5' },
-      { word: '本', reading: 'ほん', meaning: '書', level: 'N5' },
-      { word: '水', reading: 'みず', meaning: '水', level: 'N5' },
-      { word: 'お茶', reading: 'おちゃ', meaning: '茶', level: 'N5' },
-      { word: 'ご飯', reading: 'ごはん', meaning: '飯', level: 'N5' },
-      { word: '魚', reading: 'さかな', meaning: '魚', level: 'N5' },
-      { word: '肉', reading: 'にく', meaning: '肉', level: 'N5' },
-      { word: '果物', reading: 'くだもの', meaning: '水果', level: 'N5' },
-      { word: '野菜', reading: 'やさい', meaning: '蔬菜', level: 'N5' },
-      { word: '日本', reading: 'にほん', meaning: '日本', level: 'N5' },
-      { word: '英語', reading: 'えいご', meaning: '英語', level: 'N5' },
-      { word: '日本語', reading: 'にほんご', meaning: '日語', level: 'N5' },
-      { word: '友達', reading: 'ともだち', meaning: '朋友', level: 'N5' },
-      { word: '家族', reading: 'かぞく', meaning: '家人', level: 'N5' },
-      { word: '先生', reading: 'せんせい', meaning: '老師', level: 'N5' },
-      { word: '学生', reading: 'がくせい', meaning: '學生', level: 'N5' },
-      { word: '毎日', reading: 'まいにち', meaning: '每天', level: 'N5' },
-      { word: '今日', reading: 'きょう', meaning: '今天', level: 'N5' },
-      { word: '明日', reading: 'あした', meaning: '明天', level: 'N5' },
-      { word: '昨日', reading: 'きのう', meaning: '昨天', level: 'N5' },
-      { word: '値段', reading: 'ねだん', meaning: '價錢', level: 'N5' },
-      { word: 'お金', reading: 'おかね', meaning: '錢', level: 'N5' },
-      { word: '天気予報', reading: 'てんきよほう', meaning: '天氣預報', level: 'N5' },
-      // ── N4 ──
-      { word: '始める', reading: 'はじめる', meaning: '開始', level: 'N4' },
-      { word: '終わる', reading: 'おわる', meaning: '結束', level: 'N4' },
-      { word: '続ける', reading: 'つづける', meaning: '繼續', level: 'N4' },
-      { word: '考える', reading: 'かんがえる', meaning: '思考、考慮', level: 'N4' },
-      { word: '動く', reading: 'うごく', meaning: '移動、運作', level: 'N4' },
-      { word: '使う', reading: 'つかう', meaning: '使用', level: 'N4' },
-      { word: '作る', reading: 'つくる', meaning: '製作', level: 'N4' },
-      { word: '決める', reading: 'きめる', meaning: '決定', level: 'N4' },
-      { word: '教える', reading: 'おしえる', meaning: '教導', level: 'N4' },
-      { word: '覚える', reading: 'おぼえる', meaning: '記住', level: 'N4' },
-      { word: '忘れる', reading: 'わすれる', meaning: '忘記', level: 'N4' },
-      { word: '借りる', reading: 'かりる', meaning: '借用', level: 'N4' },
-      { word: '貸す', reading: 'かす', meaning: '借出', level: 'N4' },
-      { word: '勤める', reading: 'つとめる', meaning: '任職於', level: 'N4' },
-      { word: '変える', reading: 'かえる', meaning: '改變', level: 'N4' },
-      { word: '送る', reading: 'おくる', meaning: '寄送、送行', level: 'N4' },
-      { word: '通う', reading: 'かよう', meaning: '通勤、往返', level: 'N4' },
-      { word: '集める', reading: 'あつめる', meaning: '收集', level: 'N4' },
-      { word: '足りる', reading: 'たりる', meaning: '足夠', level: 'N4' },
-      { word: '運ぶ', reading: 'はこぶ', meaning: '搬運', level: 'N4' },
-      { word: '拾う', reading: 'ひろう', meaning: '撿拾', level: 'N4' },
-      { word: '曇り', reading: 'くもり', meaning: '陰天', level: 'N4' },
-      { word: '晴れ', reading: 'はれ', meaning: '晴天', level: 'N4' },
-      { word: '雨', reading: 'あめ', meaning: '雨', level: 'N4' },
-      { word: '雪', reading: 'ゆき', meaning: '雪', level: 'N4' },
-      { word: '天気予報', reading: 'てんきよほう', meaning: '天氣預報', level: 'N4' },
-      { word: '洗濯', reading: 'せんたく', meaning: '洗衣服', level: 'N4' },
-      { word: '掃除', reading: 'そうじ', meaning: '打掃', level: 'N4' },
-      { word: '料理', reading: 'りょうり', meaning: '烹飪、料理', level: 'N4' },
-      { word: '散歩', reading: 'さんぽ', meaning: '散步', level: 'N4' },
-      { word: '旅行', reading: 'りょこう', meaning: '旅行', level: 'N4' },
-      { word: '結婚', reading: 'けっこん', meaning: '結婚', level: 'N4' },
-      { word: '出張', reading: 'しゅっちょう', meaning: '出差', level: 'N4' },
-      { word: '住所', reading: 'じゅうしょ', meaning: '地址', level: 'N4' },
-      { word: '近所', reading: 'きんじょ', meaning: '附近', level: 'N4' },
-      { word: '隣', reading: 'となり', meaning: '隔壁', level: 'N4' },
-      { word: '入口', reading: 'いりぐち', meaning: '入口', level: 'N4' },
-      { word: '出口', reading: 'でぐち', meaning: '出口', level: 'N4' },
-      { word: '交差点', reading: 'こうさてん', meaning: '十字路口', level: 'N4' },
-      { word: '信号', reading: 'しんごう', meaning: '紅綠燈', level: 'N4' },
-      { word: '地図', reading: 'ちず', meaning: '地圖', level: 'N4' },
-      { word: '窓', reading: 'まど', meaning: '窗戶', level: 'N4' },
-      { word: '荷物', reading: 'にもつ', meaning: '行李', level: 'N4' },
-      { word: '切符', reading: 'きっぷ', meaning: '票券', level: 'N4' },
-      { word: '予約', reading: 'よやく', meaning: '預約', level: 'N4' },
-      { word: '注文', reading: 'ちゅうもん', meaning: '點餐、訂購', level: 'N4' },
-      { word: '一度', reading: 'いちど', meaning: '一次', level: 'N4' },
-      { word: '今回', reading: 'こんかい', meaning: '這次', level: 'N4' },
-      { word: '次回', reading: 'じかい', meaning: '下次', level: 'N4' },
-      { word: '前回', reading: 'ぜんかい', meaning: '上次', level: 'N4' },
-      { word: '急ぐ', reading: 'いそぐ', meaning: '趕快、急促', level: 'N4' },
-      { word: '遅れる', reading: 'おくれる', meaning: '遲到、延遲', level: 'N4' },
-      { word: '間に合う', reading: 'まにあう', meaning: '來得及', level: 'N4' },
-      { word: '留守', reading: 'るす', meaning: '不在家', level: 'N4' },
-      { word: '経験', reading: 'けいけん', meaning: '經驗', level: 'N4' },
-      { word: '成功', reading: 'せいこう', meaning: '成功', level: 'N4' },
-      { word: '失敗', reading: 'しっぱい', meaning: '失敗', level: 'N4' },
-      { word: '食事', reading: 'しょくじ', meaning: '用餐', level: 'N4' },
-      { word: '味', reading: 'あじ', meaning: '味道', level: 'N4' },
-      { word: '季節', reading: 'きせつ', meaning: '季節', level: 'N4' },
-      { word: '春', reading: 'はる', meaning: '春天', level: 'N4' },
-      { word: '夏', reading: 'なつ', meaning: '夏天', level: 'N4' },
-      { word: '秋', reading: 'あき', meaning: '秋天', level: 'N4' },
-      { word: '冬', reading: 'ふゆ', meaning: '冬天', level: 'N4' },
-      // ── N3 ──
-      { word: '関する', reading: 'かんする', meaning: '關於', level: 'N3' },
-      { word: '述べる', reading: 'のべる', meaning: '陳述', level: 'N3' },
-      { word: '認める', reading: 'みとめる', meaning: '承認、認可', level: 'N3' },
-      { word: '示す', reading: 'しめす', meaning: '表示、展現', level: 'N3' },
-      { word: '及ぼす', reading: 'およぼす', meaning: '帶來（影響）', level: 'N3' },
-      { word: '含める', reading: 'ふくめる', meaning: '包含', level: 'N3' },
-      { word: '断る', reading: 'ことわる', meaning: '拒絕', level: 'N3' },
-      { word: '勧める', reading: 'すすめる', meaning: '推薦、勸說', level: 'N3' },
-      { word: '防ぐ', reading: 'ふせぐ', meaning: '預防、防止', level: 'N3' },
-      { word: '比べる', reading: 'くらべる', meaning: '比較', level: 'N3' },
-      { word: '越える', reading: 'こえる', meaning: '超過', level: 'N3' },
-      { word: '招く', reading: 'まねく', meaning: '邀請、招致', level: 'N3' },
-      { word: '抱える', reading: 'かかえる', meaning: '抱著、肩負', level: 'N3' },
-      { word: '整える', reading: 'ととのえる', meaning: '整理、準備', level: 'N3' },
-      { word: '許す', reading: 'ゆるす', meaning: '允許、原諒', level: 'N3' },
-      { word: '快適', reading: 'かいてき', meaning: '舒適', level: 'N3' },
-      { word: '柔らかい', reading: 'やわらかい', meaning: '柔軟的', level: 'N3' },
-      { word: '硬い', reading: 'かたい', meaning: '堅硬的', level: 'N3' },
-      { word: '複雑', reading: 'ふくざつ', meaning: '複雜', level: 'N3' },
-      { word: '簡単', reading: 'かんたん', meaning: '簡單', level: 'N3' },
-      { word: '危険', reading: 'きけん', meaning: '危險', level: 'N3' },
-      { word: '安全', reading: 'あんぜん', meaning: '安全', level: 'N3' },
-      { word: '有名', reading: 'ゆうめい', meaning: '有名', level: 'N3' },
-      { word: '人気', reading: 'にんき', meaning: '受歡迎', level: 'N3' },
-      { word: '状態', reading: 'じょうたい', meaning: '狀態', level: 'N3' },
-      { word: '状況', reading: 'じょうきょう', meaning: '狀況', level: 'N3' },
-      { word: '環境', reading: 'かんきょう', meaning: '環境', level: 'N3' },
-      { word: '影響', reading: 'えいきょう', meaning: '影響', level: 'N3' },
-      { word: '関係', reading: 'かんけい', meaning: '關係', level: 'N3' },
-      { word: '程度', reading: 'ていど', meaning: '程度', level: 'N3' },
-      { word: '割合', reading: 'わりあい', meaning: '比例、相對地', level: 'N3' },
-      { word: '傾向', reading: 'けいこう', meaning: '傾向', level: 'N3' },
-      { word: '特徴', reading: 'とくちょう', meaning: '特徵', level: 'N3' },
-      { word: '性質', reading: 'せいしつ', meaning: '性質', level: 'N3' },
-      { word: '積極的', reading: 'せっきょくてき', meaning: '積極的', level: 'N3' },
-      { word: '消極的', reading: 'しょうきょくてき', meaning: '消極的', level: 'N3' },
-      { word: '可能性', reading: 'かのうせい', meaning: '可能性', level: 'N3' },
-      { word: '事実', reading: 'じじつ', meaning: '事實', level: 'N3' },
-      { word: '判断', reading: 'はんだん', meaning: '判斷', level: 'N3' },
-      { word: '比較', reading: 'ひかく', meaning: '比較', level: 'N3' },
-      { word: '確認', reading: 'かくにん', meaning: '確認', level: 'N3' },
-      { word: '処理', reading: 'しょり', meaning: '處理', level: 'N3' },
-      { word: '対応', reading: 'たいおう', meaning: '應對', level: 'N3' },
-      { word: '提案', reading: 'ていあん', meaning: '提案', level: 'N3' },
-      { word: '要求', reading: 'ようきゅう', meaning: '要求', level: 'N3' },
-      { word: '報告', reading: 'ほうこく', meaning: '報告', level: 'N3' },
-      { word: '連絡', reading: 'れんらく', meaning: '聯絡', level: 'N3' },
-      { word: '相談', reading: 'そうだん', meaning: '商量', level: 'N3' },
-      { word: '注意', reading: 'ちゅうい', meaning: '注意', level: 'N3' },
-      { word: '目的', reading: 'もくてき', meaning: '目的', level: 'N3' },
-      { word: '手段', reading: 'しゅだん', meaning: '手段、方法', level: 'N3' },
-    ];
-
-    // ================================================================
-    // State
-    // ================================================================
-    const state = {
-      mode: 'hiragana',
-      subMode: 'all',
-      direction: 'char-to-romaji', // 'char-to-romaji' or 'romaji-to-char'
-      answered: false,
-      currentQuestion: null,
-      stats: { correct: 0, wrong: 0, streak: 0, total: 0 },
-      showingVocabMeaning: false, // for vocab mode: true = show meaning, pick word
-    };
-
-    // ================================================================
-    // Core
-    // ================================================================
-    function getKanaData() {
-      return state.mode === 'hiragana' ? HIRAGANA : KATAKANA;
-    }
-
-    function getQuestions() {
-      if (state.mode === 'vocab') {
-        let words = VOCAB;
-        if (state.subMode !== 'all') {
-          words = words.filter(w => w.level === state.subMode);
-        }
-        return words;
-      }
-      
-      const data = getKanaData();
-      let chars = [];
-      if (state.subMode === 'all') {
-        chars = [...data.basic, ...data.dakuten, ...data.handakuten, ...data.youon];
-      } else {
-        chars = [...(data[state.subMode] || [])];
-      }
-      return chars;
-    }
-
-    function shuffle(arr) {
-      const a = [...arr];
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-
-    function pickN(arr, n, exclude) {
-      const filtered = arr.filter(x => x !== exclude);
-      const shuffled = shuffle(filtered);
-      return shuffled.slice(0, n);
-    }
-
-    // ================================================================
-    // Quiz Logic
-    // ================================================================
-    function nextQuestion() {
-      if (state.answered) return; // already showing next
-      
-      const questions = getQuestions();
-      if (questions.length === 0) return;
-
-      if (state.mode === 'vocab') {
-        nextVocabQuestion(questions);
-      } else {
-        nextKanaQuestion(questions);
-      }
-      
-      state.answered = false;
-      updateStats();
-      updateProgress();
-    }
-
-    function nextKanaQuestion(questions) {
-      const q = questions[Math.floor(Math.random() * questions.length)];
-      state.currentQuestion = q;
-
-      // Get all possible romaji from same pool for distractors
-      const allRomaji = questions.map(x => x.romaji);
-      const wrongOptions = pickN(allRomaji, 3, q.romaji);
-      const options = shuffle([q.romaji, ...wrongOptions]);
-
-      const charDisplay = document.getElementById('charDisplay');
-      const readingDisplay = document.getElementById('readingDisplay');
-      const optionsContainer = document.getElementById('optionsContainer');
-
-      if (state.direction === 'char-to-romaji') {
-        charDisplay.textContent = q.char;
-        readingDisplay.classList.add('hidden');
-        renderOptions(options, q.romaji, 'romaji');
-      } else {
-        charDisplay.textContent = q.romaji;
-        charDisplay.className = 'quiz-char text-[#1e293b] text-5xl';
-        readingDisplay.classList.add('hidden');
-        renderOptions(options, q.char, 'kana');
-      }
-    }
-
-    function nextVocabQuestion(questions) {
-      const q = questions[Math.floor(Math.random() * questions.length)];
-      state.currentQuestion = q;
-
-      // Get wrong meanings from other vocab
-      const allMeanings = VOCAB.map(x => x.meaning);
-      const wrongOptions = pickN(allMeanings, 3, q.meaning);
-      const options = shuffle([q.meaning, ...wrongOptions]);
-
-      const charDisplay = document.getElementById('charDisplay');
-      const readingDisplay = document.getElementById('readingDisplay');
-      readingDisplay.classList.remove('hidden');
-      
-      charDisplay.textContent = q.word;
-      charDisplay.className = 'quiz-char text-[#1e293b] text-5xl';
-      readingDisplay.textContent = q.reading;
-      
-      renderOptions(options, q.meaning, 'meaning');
-    }
-
-    function renderOptions(options, correctAnswer, type) {
-      const container = document.getElementById('optionsContainer');
-      container.innerHTML = '';
-      
-      options.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn';
-        btn.textContent = opt;
-        btn.dataset.value = opt;
-        
-        btn.addEventListener('click', () => handleAnswer(btn, opt, correctAnswer));
-        container.appendChild(btn);
-      });
-    }
-
-    function handleAnswer(btn, selected, correct) {
-      if (state.answered) return;
-      state.answered = true;
-
-      const allBtns = document.querySelectorAll('.option-btn');
-      allBtns.forEach(b => b.disabled = true);
-
-      const isCorrect = selected === correct;
-
-      if (isCorrect) {
-        btn.classList.add('correct');
-        state.stats.correct++;
-        state.stats.streak++;
-        document.getElementById('feedbackText').textContent = '○ 正解！';
-        document.getElementById('feedbackText').className = 'text-sm font-medium text-[#22c55e]';
-      } else {
-        btn.classList.add('wrong');
-        btn.classList.add('shake');
-        state.stats.wrong++;
-        state.stats.streak = 0;
-        document.getElementById('feedbackText').textContent = `✗ 不正解 … 正解：${correct}`;
-        document.getElementById('feedbackText').className = 'text-sm font-medium text-[#ef4444]';
-        
-        // Reveal correct answer
-        allBtns.forEach(b => {
-          if (b.dataset.value === correct) b.classList.add('reveal');
-        });
-      }
-
-      state.stats.total++;
-      updateStats();
-
-      // Auto advance
-      setTimeout(() => {
-        document.getElementById('feedbackText').textContent = '';
-        document.getElementById('feedbackText').className = 'text-sm font-medium';
-        document.getElementById('questionCard').classList.remove('slide-up');
-        void document.getElementById('questionCard').offsetWidth;
-        document.getElementById('questionCard').classList.add('slide-up');
-        nextQuestion();
-      }, isCorrect ? 600 : 1500);
-    }
-
-    // ================================================================
-    // Mode Switching
-    // ================================================================
-    function switchMode(mode) {
-      state.mode = mode;
-      state.subMode = 'all';
-      state.answered = false;
-      document.getElementById('feedbackText').textContent = '';
-      document.getElementById('feedbackText').className = 'text-sm font-medium';
-      document.querySelectorAll('.mode-tab').forEach(t => {
-        t.classList.toggle('active', t.dataset.mode === mode);
-      });
-      document.getElementById('directionBtn').classList.toggle('hidden', mode === 'vocab');
-      updateSubTabs();
-      document.getElementById('questionCard').classList.remove('slide-up');
-      void document.getElementById('questionCard').offsetWidth;
-      document.getElementById('questionCard').classList.add('slide-up');
-      nextQuestion();
-    }
-
-    function switchSubMode(sub) {
-      state.subMode = sub;
-      state.answered = false;
-      document.getElementById('feedbackText').textContent = '';
-      document.getElementById('feedbackText').className = 'text-sm font-medium';
-      document.querySelectorAll('.sub-tab').forEach(t => {
-        t.classList.toggle('active', t.dataset.sub === sub);
-      });
-      document.getElementById('questionCard').classList.remove('slide-up');
-      void document.getElementById('questionCard').offsetWidth;
-      document.getElementById('questionCard').classList.add('slide-up');
-      nextQuestion();
-    }
-
-    function toggleDirection() {
-      state.direction = state.direction === 'char-to-romaji' ? 'romaji-to-char' : 'char-to-romaji';
-      document.getElementById('directionBtn').textContent = 
-        state.direction === 'char-to-romaji' ? '文字 → ローマ字' : 'ローマ字 → 文字';
-      state.answered = false;
-      document.getElementById('feedbackText').textContent = '';
-      document.getElementById('feedbackText').className = 'text-sm font-medium';
-      nextQuestion();
-    }
-
-    function updateSubTabs() {
-      const container = document.getElementById('subTabs');
-      
-      if (state.mode === 'vocab') {
-        container.innerHTML = `
-          <button class="sub-tab active" data-sub="all" onclick="switchSubMode('all')">全部 (${VOCAB.length})</button>
-          <button class="sub-tab" data-sub="N5" onclick="switchSubMode('N5')">N5 (${VOCAB.filter(w => w.level === 'N5').length})</button>
-          <button class="sub-tab" data-sub="N4" onclick="switchSubMode('N4')">N4 (${VOCAB.filter(w => w.level === 'N4').length})</button>
-          <button class="sub-tab" data-sub="N3" onclick="switchSubMode('N3')">N3 (${VOCAB.filter(w => w.level === 'N3').length})</button>
-        `;
-      } else {
-        const data = getKanaData();
-        const total = data.basic.length + data.dakuten.length + data.handakuten.length + data.youon.length;
-        container.innerHTML = `
-          <button class="sub-tab active" data-sub="all" onclick="switchSubMode('all')">全部 (${total})</button>
-          <button class="sub-tab" data-sub="basic" onclick="switchSubMode('basic')">基本 (${data.basic.length})</button>
-          <button class="sub-tab" data-sub="dakuten" onclick="switchSubMode('dakuten')">濁音 (${data.dakuten.length + data.handakuten.length})</button>
-          <button class="sub-tab" data-sub="youon" onclick="switchSubMode('youon')">拗音 (${data.youon.length})</button>
-        `;
-      }
-    }
-
-    // ================================================================
-    // UI Updates
-    // ================================================================
-    function updateStats() {
-      document.getElementById('correctCount').textContent = state.stats.correct;
-      document.getElementById('wrongCount').textContent = state.stats.wrong;
-      document.getElementById('streakCount').textContent = state.stats.streak;
-      document.getElementById('totalCount').textContent = state.stats.total;
-    }
-
-    function updateProgress() {
-      const total = getQuestions().length;
-      const done = state.stats.total;
-      const pct = Math.min(100, (done / Math.max(total, 1)) * 100);
-      document.getElementById('progressBar').style.width = `${pct}%`;
-    }
-
-    // ================================================================
-    // Keyboard Support
-    // ================================================================
-    document.addEventListener('keydown', (e) => {
-      if (e.key >= '1' && e.key <= '4') {
-        const btns = document.querySelectorAll('.option-btn:not(:disabled)');
-        const idx = parseInt(e.key) - 1;
-        if (btns[idx]) btns[idx].click();
-      }
-    });
-
-    // ================================================================
-    // Init
-    // ================================================================
-    updateSubTabs();
-    nextQuestion();
+const TIPS={a:'張大嘴像「啊」',i:'嘴角拉開像「伊」',u:'嘴不圓突像「烏」嘴不向前凸',e:'「欸」的短音嘴半開',o:'口形圓像「哦」',ka:'「咖」的k+啊',ki:'「key」的ki舌抵上顎',ku:'「庫」的k+烏',ke:'「開」的ke嘴拉開',ko:'「摳」的k+哦',sa:'「薩」的s+啊',shi:'像「西」舌尖抵上顎',su:'「思」尾音嘴放鬆',se:'「塞」的s+欸',so:'「嗦」的s+哦',ta:'「他」的t+啊',chi:'像「七」舌尖碰上顎',tsu:'像「次」嘴較圓舌尖抵牙齦',te:'「鐵」的t+欸',to:'「偷」的t+哦',na:'「那」的n+啊',ni:'「你」的n+伊',nu:'「奴」的n+烏',ne:'「內」的n+欸',no:'「喏」的n+哦',ha:'「哈」的h+啊',hi:'像「嘿」但更輕短舌面靠近上顎',fu:'像「夫」但上唇不碰下唇吹氣感',he:'「嘿」的h+欸',ho:'「呵」的h+哦',ma:'「媽」的m+啊',mi:'「咪」的m+伊',mu:'「木」的m+烏',me:'「咩」的m+欸',mo:'「摸」的m+哦',ya:'「呀」短促',yu:'「優」短音唇不圓',yo:'「喲」短促',ra:'舌尖輕彈上顎像「啦」更輕',ri:'舌尖輕彈像「哩」更短',ru:'舌尖輕彈像「路」輕聲',re:'舌尖輕彈像「咧」',ro:'舌尖輕彈像「咯」',wa:'「哇」短促',wo:'像「喔」唇呈圓形',n:'「嗯」鼻音閉嘴'};
+function getTip(r){if(TIPS[r])return TIPS[r];if(r.startsWith('g')){let b=TIPS[r.slice(1)];return'濁音聲帶震動：'+(b||r.slice(1))}if(r.startsWith('z')&&!r.startsWith('zu')){let b=TIPS[r.slice(1)];return'濁音ざ行舌尖抵上顎：'+(b||r.slice(1))}if(r==='zu')return'濁音す濁音化聲帶震動';if(r.startsWith('d')){let b=TIPS[r.slice(1)];return'濁音だ行舌尖抵上顎：'+(b||r.slice(1))}if(r==='ji')return'じ或ぢ像「姬」短音';if(r.startsWith('b')){let b=TIPS[r.slice(1)];return'濁音ば行雙唇閉合聲帶震動：'+(b||r.slice(1))}if(r.startsWith('p')){let b=TIPS[r.slice(1)];return'半濁音雙唇閉合送氣：'+(b||r.slice(1))}if(r.endsWith('ya')||r.endsWith('yu')||r.endsWith('yo')){let br=r.slice(0,-1),sr=r.slice(-2),b=TIPS[br]||br,s=TIPS[sr]||sr;return'拗音「'+br+sr+'」連讀一拍：'+b+'+'+s}return''}
+const HIRAGANA={basic:[{char:'あ',romaji:'a'},{char:'い',romaji:'i'},{char:'う',romaji:'u'},{char:'え',romaji:'e'},{char:'お',romaji:'o'},{char:'か',romaji:'ka'},{char:'き',romaji:'ki'},{char:'く',romaji:'ku'},{char:'け',romaji:'ke'},{char:'こ',romaji:'ko'},{char:'さ',romaji:'sa'},{char:'し',romaji:'shi'},{char:'す',romaji:'su'},{char:'せ',romaji:'se'},{char:'そ',romaji:'so'},{char:'た',romaji:'ta'},{char:'ち',romaji:'chi'},{char:'つ',romaji:'tsu'},{char:'て',romaji:'te'},{char:'と',romaji:'to'},{char:'な',romaji:'na'},{char:'に',romaji:'ni'},{char:'ぬ',romaji:'nu'},{char:'ね',romaji:'ne'},{char:'の',romaji:'no'},{char:'は',romaji:'ha'},{char:'ひ',romaji:'hi'},{char:'ふ',romaji:'fu'},{char:'へ',romaji:'he'},{char:'ほ',romaji:'ho'},{char:'ま',romaji:'ma'},{char:'み',romaji:'mi'},{char:'む',romaji:'mu'},{char:'め',romaji:'me'},{char:'も',romaji:'mo'},{char:'や',romaji:'ya'},{char:'ゆ',romaji:'yu'},{char:'よ',romaji:'yo'},{char:'ら',romaji:'ra'},{char:'り',romaji:'ri'},{char:'る',romaji:'ru'},{char:'れ',romaji:'re'},{char:'ろ',romaji:'ro'},{char:'わ',romaji:'wa'},{char:'を',romaji:'wo'},{char:'ん',romaji:'n'}],dakuten:[{char:'が',romaji:'ga'},{char:'ぎ',romaji:'gi'},{char:'ぐ',romaji:'gu'},{char:'げ',romaji:'ge'},{char:'ご',romaji:'go'},{char:'ざ',romaji:'za'},{char:'じ',romaji:'ji'},{char:'ず',romaji:'zu'},{char:'ぜ',romaji:'ze'},{char:'ぞ',romaji:'zo'},{char:'だ',romaji:'da'},{char:'ぢ',romaji:'ji'},{char:'づ',romaji:'zu'},{char:'で',romaji:'de'},{char:'ど',romaji:'do'},{char:'ば',romaji:'ba'},{char:'び',romaji:'bi'},{char:'ぶ',romaji:'bu'},{char:'べ',romaji:'be'},{char:'ぼ',romaji:'bo'}],handakuten:[{char:'ぱ',romaji:'pa'},{char:'ぴ',romaji:'pi'},{char:'ぷ',romaji:'pu'},{char:'ぺ',romaji:'pe'},{char:'ぽ',romaji:'po'}],youon:[{char:'きゃ',romaji:'kya'},{char:'きゅ',romaji:'kyu'},{char:'きょ',romaji:'kyo'},{char:'しゃ',romaji:'sha'},{char:'しゅ',romaji:'shu'},{char:'しょ',romaji:'sho'},{char:'ちゃ',romaji:'cha'},{char:'ちゅ',romaji:'chu'},{char:'ちょ',romaji:'cho'},{char:'にゃ',romaji:'nya'},{char:'にゅ',romaji:'nyu'},{char:'にょ',romaji:'nyo'},{char:'ひゃ',romaji:'hya'},{char:'ひゅ',romaji:'hyu'},{char:'ひょ',romaji:'hyo'},{char:'みゃ',romaji:'mya'},{char:'みゅ',romaji:'myu'},{char:'みょ',romaji:'myo'},{char:'りゃ',romaji:'rya'},{char:'りゅ',romaji:'ryu'},{char:'りょ',romaji:'ryo'},{char:'ぎゃ',romaji:'gya'},{char:'ぎゅ',romaji:'gyu'},{char:'ぎょ',romaji:'gyo'},{char:'じゃ',romaji:'ja'},{char:'じゅ',romaji:'ju'},{char:'じょ',romaji:'jo'},{char:'びゃ',romaji:'bya'},{char:'びゅ',romaji:'byu'},{char:'びょ',romaji:'byo'},{char:'ぴゃ',romaji:'pya'},{char:'ぴゅ',romaji:'pyu'},{char:'ぴょ',romaji:'pyo'}]};
+const KATAKANA={basic:[{char:'ア',romaji:'a'},{char:'イ',romaji:'i'},{char:'ウ',romaji:'u'},{char:'エ',romaji:'e'},{char:'オ',romaji:'o'},{char:'カ',romaji:'ka'},{char:'キ',romaji:'ki'},{char:'ク',romaji:'ku'},{char:'ケ',romaji:'ke'},{char:'コ',romaji:'ko'},{char:'サ',romaji:'sa'},{char:'シ',romaji:'shi'},{char:'ス',romaji:'su'},{char:'セ',romaji:'se'},{char:'ソ',romaji:'so'},{char:'タ',romaji:'ta'},{char:'チ',romaji:'chi'},{char:'ツ',romaji:'tsu'},{char:'テ',romaji:'te'},{char:'ト',romaji:'to'},{char:'ナ',romaji:'na'},{char:'ニ',romaji:'ni'},{char:'ヌ',romaji:'nu'},{char:'ネ',romaji:'ne'},{char:'ノ',romaji:'no'},{char:'ハ',romaji:'ha'},{char:'ヒ',romaji:'hi'},{char:'フ',romaji:'fu'},{char:'ヘ',romaji:'he'},{char:'ホ',romaji:'ho'},{char:'マ',romaji:'ma'},{char:'ミ',romaji:'mi'},{char:'ム',romaji:'mu'},{char:'メ',romaji:'me'},{char:'モ',romaji:'mo'},{char:'ヤ',romaji:'ya'},{char:'ユ',romaji:'yu'},{char:'ヨ',romaji:'yo'},{char:'ラ',romaji:'ra'},{char:'リ',romaji:'ri'},{char:'ル',romaji:'ru'},{char:'レ',romaji:'re'},{char:'ロ',romaji:'ro'},{char:'ワ',romaji:'wa'},{char:'ヲ',romaji:'wo'},{char:'ン',romaji:'n'}],dakuten:[{char:'ガ',romaji:'ga'},{char:'ギ',romaji:'gi'},{char:'グ',romaji:'gu'},{char:'ゲ',romaji:'ge'},{char:'ゴ',romaji:'go'},{char:'ザ',romaji:'za'},{char:'ジ',romaji:'ji'},{char:'ズ',romaji:'zu'},{char:'ゼ',romaji:'ze'},{char:'ゾ',romaji:'zo'},{char:'ダ',romaji:'da'},{char:'ヂ',romaji:'ji'},{char:'ヅ',romaji:'zu'},{char:'デ',romaji:'de'},{char:'ド',romaji:'do'},{char:'バ',romaji:'ba'},{char:'ビ',romaji:'bi'},{char:'ブ',romaji:'bu'},{char:'ベ',romaji:'be'},{char:'ボ',romaji:'bo'}],handakuten:[{char:'パ',romaji:'pa'},{char:'ピ',romaji:'pi'},{char:'プ',romaji:'pu'},{char:'ペ',romaji:'pe'},{char:'ポ',romaji:'po'}],youon:[{char:'キャ',romaji:'kya'},{char:'キュ',romaji:'kyu'},{char:'キョ',romaji:'kyo'},{char:'シャ',romaji:'sha'},{char:'シュ',romaji:'shu'},{char:'ショ',romaji:'sho'},{char:'チャ',romaji:'cha'},{char:'チュ',romaji:'chu'},{char:'チョ',romaji:'cho'},{char:'ニャ',romaji:'nya'},{char:'ニュ',romaji:'nyu'},{char:'ニョ',romaji:'nyo'},{char:'ヒャ',romaji:'hya'},{char:'ヒュ',romaji:'hyu'},{char:'ヒョ',romaji:'hyo'},{char:'ミャ',romaji:'mya'},{char:'ミュ',romaji:'myu'},{char:'ミョ',romaji:'myo'},{char:'リャ',romaji:'rya'},{char:'リュ',romaji:'ryu'},{char:'リョ',romaji:'ryo'},{char:'ギャ',romaji:'gya'},{char:'ギュ',romaji:'gyu'},{char:'ギョ',romaji:'gyo'},{char:'ジャ',romaji:'ja'},{char:'ジュ',romaji:'ju'},{char:'ジョ',romaji:'jo'},{char:'ビャ',romaji:'bya'},{char:'ビュ',romaji:'byu'},{char:'ビョ',romaji:'byo'},{char:'ピャ',romaji:'pya'},{char:'ピュ',romaji:'pyu'},{char:'ピョ',romaji:'pyo'}]};
+const VOCAB=[
+{word:'食べる',reading:'たべる',meaning:'吃',level:'N5',ex:'ご飯を食べる。'},{word:'飲む',reading:'のむ',meaning:'喝',level:'N5',ex:'水を飲む。'},{word:'行く',reading:'いく',meaning:'去',level:'N5',ex:'学校に行く。'},{word:'来る',reading:'くる',meaning:'來',level:'N5',ex:'友達が来る。'},{word:'帰る',reading:'かえる',meaning:'回去',level:'N5',ex:'家に帰る。'},{word:'見る',reading:'みる',meaning:'看',level:'N5',ex:'テレビを見る。'},{word:'聞く',reading:'きく',meaning:'聽',level:'N5',ex:'音楽を聞く。'},{word:'話す',reading:'はなす',meaning:'說',level:'N5',ex:'日本語を話す。'},{word:'読む',reading:'よむ',meaning:'讀',level:'N5',ex:'本を読む。'},{word:'書く',reading:'かく',meaning:'寫',level:'N5',ex:'手紙を書く。'},{word:'買う',reading:'かう',meaning:'買',level:'N5',ex:'野菜を買う。'},{word:'待つ',reading:'まつ',meaning:'等待',level:'N5',ex:'駅で待つ。'},{word:'持つ',reading:'もつ',meaning:'拿、擁有',level:'N5'},{word:'住む',reading:'すむ',meaning:'居住',level:'N5',ex:'東京に住む。'},{word:'知る',reading:'しる',meaning:'知道',level:'N5'},{word:'分かる',reading:'わかる',meaning:'懂、明白',level:'N5',ex:'意味が分かる。'},{word:'ある',reading:'ある',meaning:'有（物）',level:'N5',ex:'机の上にある。'},{word:'いる',reading:'いる',meaning:'有（人）',level:'N5',ex:'ここに猫がいる。'},{word:'する',reading:'する',meaning:'做',level:'N5',ex:'勉強をする。'},{word:'言う',reading:'いう',meaning:'說',level:'N5',ex:'先生が言った。'},{word:'思う',reading:'おもう',meaning:'認為',level:'N5',ex:'そう思う。'},{word:'出る',reading:'でる',meaning:'出去',level:'N5',ex:'部屋を出る。'},{word:'入る',reading:'はいる',meaning:'進入',level:'N5',ex:'お風呂に入る。'},{word:'寝る',reading:'ねる',meaning:'睡覺',level:'N5',ex:'早く寝る。'},{word:'起きる',reading:'おきる',meaning:'起床',level:'N5',ex:'朝6時に起きる。'},{word:'立つ',reading:'たつ',meaning:'站立',level:'N5',ex:'ドアの前に立つ。'},{word:'座る',reading:'すわる',meaning:'坐下',level:'N5',ex:'椅子に座る。'},{word:'歩く',reading:'あるく',meaning:'走路',level:'N5',ex:'公園を歩く。'},{word:'走る',reading:'はしる',meaning:'跑步',level:'N5',ex:'毎朝走る。'},{word:'休む',reading:'やすむ',meaning:'休息',level:'N5',ex:'日曜日に休む。'},{word:'遊ぶ',reading:'あそぶ',meaning:'玩耍',level:'N5',ex:'友達と遊ぶ。'},{word:'歌う',reading:'うたう',meaning:'唱歌',level:'N5'},{word:'勉強する',reading:'べんきょうする',meaning:'學習',level:'N5',ex:'日本語を勉強する。'},{word:'仕事する',reading:'しごとする',meaning:'工作',level:'N5',ex:'会社で仕事する。'},{word:'大きい',reading:'おおきい',meaning:'大的',level:'N5',ex:'大きい犬。'},{word:'小さい',reading:'ちいさい',meaning:'小的',level:'N5',ex:'小さい猫。'},{word:'新しい',reading:'あたらしい',meaning:'新的',level:'N5',ex:'新しい車。'},{word:'古い',reading:'ふるい',meaning:'舊的',level:'N5',ex:'古い建物。'},{word:'高い',reading:'たかい',meaning:'貴的、高的',level:'N5',ex:'値段が高い。'},{word:'安い',reading:'やすい',meaning:'便宜的',level:'N5',ex:'この店は安い。'},{word:'暑い',reading:'あつい',meaning:'熱的',level:'N5',ex:'今日は暑い。'},{word:'寒い',reading:'さむい',meaning:'冷的',level:'N5',ex:'冬は寒い。'},{word:'美味しい',reading:'おいしい',meaning:'好吃的',level:'N5',ex:'美味しい。'},{word:'楽しい',reading:'たのしい',meaning:'快樂的',level:'N5',ex:'旅行は楽しい。'},{word:'忙しい',reading:'いそがしい',meaning:'忙碌的',level:'N5',ex:'毎日忙しい。'},{word:'早い',reading:'はやい',meaning:'快的、早的',level:'N5'},{word:'白い',reading:'しろい',meaning:'白色的',level:'N5'},{word:'黒い',reading:'くろい',meaning:'黑色的',level:'N5'},{word:'赤い',reading:'あかい',meaning:'紅色的',level:'N5'},{word:'青い',reading:'あおい',meaning:'藍色的',level:'N5',ex:'青い空。'},{word:'良い',reading:'よい',meaning:'好的',level:'N5',ex:'天気が良い。'},{word:'悪い',reading:'わるい',meaning:'壞的',level:'N5'},{word:'近い',reading:'ちかい',meaning:'近的',level:'N5',ex:'駅から近い。'},{word:'遠い',reading:'とおい',meaning:'遠的',level:'N5'},{word:'多い',reading:'おおい',meaning:'多的',level:'N5'},{word:'少ない',reading:'すくない',meaning:'少的',level:'N5'},{word:'好き',reading:'すき',meaning:'喜歡',level:'N5',ex:'猫が好き。'},{word:'元気',reading:'げんき',meaning:'健康的、有精神',level:'N5',ex:'お元気ですか。'},{word:'便利',reading:'べんり',meaning:'方便',level:'N5'},{word:'天気',reading:'てんき',meaning:'天氣',level:'N5',ex:'今日の天気はいい。'},{word:'時間',reading:'じかん',meaning:'時間',level:'N5',ex:'時間がない。'},{word:'場所',reading:'ばしょ',meaning:'地方、場所',level:'N5'},{word:'電話',reading:'でんわ',meaning:'電話',level:'N5',ex:'電話をかける。'},{word:'名前',reading:'なまえ',meaning:'名字',level:'N5',ex:'名前を書いてください。'},{word:'会社',reading:'かいしゃ',meaning:'公司',level:'N5',ex:'会社に行く。'},{word:'学校',reading:'がっこう',meaning:'學校',level:'N5',ex:'学校へ行く。'},{word:'病院',reading:'びょういん',meaning:'醫院',level:'N5'},{word:'駅',reading:'えき',meaning:'車站',level:'N5',ex:'駅はどこですか。'},{word:'銀行',reading:'ぎんこう',meaning:'銀行',level:'N5'},{word:'公園',reading:'こうえん',meaning:'公園',level:'N5',ex:'公園で遊ぶ。'},{word:'図書館',reading:'としょかん',meaning:'圖書館',level:'N5'},{word:'店',reading:'みせ',meaning:'商店',level:'N5'},{word:'家',reading:'いえ',meaning:'房子、家',level:'N5',ex:'家にいる。'},{word:'部屋',reading:'へや',meaning:'房間',level:'N5'},{word:'本',reading:'ほん',meaning:'書',level:'N5',ex:'本を読む。'},{word:'水',reading:'みず',meaning:'水',level:'N5',ex:'水をください。'},{word:'お茶',reading:'おちゃ',meaning:'茶',level:'N5'},{word:'ご飯',reading:'ごはん',meaning:'飯',level:'N5',ex:'ご飯を食べる。'},{word:'魚',reading:'さかな',meaning:'魚',level:'N5'},{word:'肉',reading:'にく',meaning:'肉',level:'N5'},{word:'果物',reading:'くだもの',meaning:'水果',level:'N5'},{word:'野菜',reading:'やさい',meaning:'蔬菜',level:'N5'},{word:'日本',reading:'にほん',meaning:'日本',level:'N5',ex:'日本に行きたい。'},{word:'英語',reading:'えいご',meaning:'英語',level:'N5'},{word:'日本語',reading:'にほんご',meaning:'日語',level:'N5',ex:'日本語を勉強する。'},{word:'友達',reading:'ともだち',meaning:'朋友',level:'N5',ex:'友達と遊ぶ。'},{word:'家族',reading:'かぞく',meaning:'家人',level:'N5'},{word:'先生',reading:'せんせい',meaning:'老師',level:'N5',ex:'先生に聞く。'},{word:'学生',reading:'がくせい',meaning:'學生',level:'N5'},{word:'毎日',reading:'まいにち',meaning:'每天',level:'N5',ex:'毎日勉強する。'},{word:'今日',reading:'きょう',meaning:'今天',level:'N5'},{word:'明日',reading:'あした',meaning:'明天',level:'N5',ex:'明日は休み。'},{word:'昨日',reading:'きのう',meaning:'昨天',level:'N5'},{word:'値段',reading:'ねだん',meaning:'價錢',level:'N5'},{word:'お金',reading:'おかね',meaning:'錢',level:'N5',ex:'お金がほしい。'},{word:'山',reading:'やま',meaning:'山',level:'N5',ex:'山に登る。'},{word:'川',reading:'かわ',meaning:'河',level:'N5'},{word:'海',reading:'うみ',meaning:'海',level:'N5',ex:'海を見たい。'},{word:'空',reading:'そら',meaning:'天空',level:'N5',ex:'空が青い。'},{word:'花',reading:'はな',meaning:'花',level:'N5'},{word:'猫',reading:'ねこ',meaning:'貓',level:'N5',ex:'猫が好き。'},{word:'犬',reading:'いぬ',meaning:'狗',level:'N5'},
+{word:'始める',reading:'はじめる',meaning:'開始',level:'N4',ex:'仕事を始める。'},{word:'終わる',reading:'おわる',meaning:'結束',level:'N4',ex:'授業が終わる。'},{word:'続ける',reading:'つづける',meaning:'繼續',level:'N4'},{word:'考える',reading:'かんがえる',meaning:'思考、考慮',level:'N4',ex:'よく考える。'},{word:'動く',reading:'うごく',meaning:'移動、運作',level:'N4'},{word:'使う',reading:'つかう',meaning:'使用',level:'N4',ex:'パソコンを使う。'},{word:'作る',reading:'つくる',meaning:'製作',level:'N4',ex:'料理を作る。'},{word:'決める',reading:'きめる',meaning:'決定',level:'N4'},{word:'教える',reading:'おしえる',meaning:'教導',level:'N4',ex:'日本語を教える。'},{word:'覚える',reading:'おぼえる',meaning:'記住',level:'N4',ex:'単語を覚える。'},{word:'忘れる',reading:'わすれる',meaning:'忘記',level:'N4',ex:'約束を忘れた。'},{word:'借りる',reading:'かりる',meaning:'借用',level:'N4'},{word:'貸す',reading:'かす',meaning:'借出',level:'N4'},{word:'勤める',reading:'つとめる',meaning:'任職於',level:'N4'},{word:'変える',reading:'かえる',meaning:'改變',level:'N4'},{word:'送る',reading:'おくる',meaning:'寄送、送行',level:'N4'},{word:'通う',reading:'かよう',meaning:'通勤、往返',level:'N4'},{word:'集める',reading:'あつめる',meaning:'收集',level:'N4'},{word:'足りる',reading:'たりる',meaning:'足夠',level:'N4',ex:'時間が足りない。'},{word:'運ぶ',reading:'はこぶ',meaning:'搬運',level:'N4'},{word:'拾う',reading:'ひろう',meaning:'撿拾',level:'N4'},{word:'急ぐ',reading:'いそぐ',meaning:'趕快、急促',level:'N4',ex:'急いでください。'},{word:'遅れる',reading:'おくれる',meaning:'遲到、延遲',level:'N4',ex:'電車に遅れた。'},{word:'間に合う',reading:'まにあう',meaning:'來得及',level:'N4'},{word:'謝る',reading:'あやまる',meaning:'道歉',level:'N4',ex:'先生に謝る。'},{word:'呼ぶ',reading:'よぶ',meaning:'呼叫、邀請',level:'N4'},{word:'手伝う',reading:'てつだう',meaning:'幫忙',level:'N4',ex:'手伝ってください。'},{word:'曇り',reading:'くもり',meaning:'陰天',level:'N4'},{word:'晴れ',reading:'はれ',meaning:'晴天',level:'N4',ex:'今日は晴れ。'},{word:'雨',reading:'あめ',meaning:'雨',level:'N4',ex:'雨が降る。'},{word:'雪',reading:'ゆき',meaning:'雪',level:'N4'},{word:'洗濯',reading:'せんたく',meaning:'洗衣服',level:'N4'},{word:'掃除',reading:'そうじ',meaning:'打掃',level:'N4'},{word:'料理',reading:'りょうり',meaning:'烹飪、料理',level:'N4',ex:'料理が上手。'},{word:'散歩',reading:'さんぽ',meaning:'散步',level:'N4',ex:'公園を散歩する。'},{word:'旅行',reading:'りょこう',meaning:'旅行',level:'N4',ex:'旅行に行く。'},{word:'結婚',reading:'けっこん',meaning:'結婚',level:'N4'},{word:'出張',reading:'しゅっちょう',meaning:'出差',level:'N4'},{word:'住所',reading:'じゅうしょ',meaning:'地址',level:'N4'},{word:'近所',reading:'きんじょ',meaning:'附近',level:'N4'},{word:'隣',reading:'となり',meaning:'隔壁',level:'N4',ex:'隣の部屋。'},{word:'入口',reading:'いりぐち',meaning:'入口',level:'N4'},{word:'出口',reading:'でぐち',meaning:'出口',level:'N4',ex:'出口はどこ？'},{word:'交差点',reading:'こうさてん',meaning:'十字路口',level:'N4'},{word:'信号',reading:'しんごう',meaning:'紅綠燈',level:'N4'},{word:'地図',reading:'ちず',meaning:'地圖',level:'N4',ex:'地図を見る。'},{word:'窓',reading:'まど',meaning:'窗戶',level:'N4'},{word:'荷物',reading:'にもつ',meaning:'行李',level:'N4'},{word:'切符',reading:'きっぷ',meaning:'票券',level:'N4',ex:'切符を買う。'},{word:'予約',reading:'よやく',meaning:'預約',level:'N4',ex:'予約を取る。'},{word:'注文',reading:'ちゅうもん',meaning:'點餐、訂購',level:'N4'},{word:'留守',reading:'るす',meaning:'不在家',level:'N4'},{word:'食事',reading:'しょくじ',meaning:'用餐',level:'N4'},{word:'味',reading:'あじ',meaning:'味道',level:'N4'},{word:'季節',reading:'きせつ',meaning:'季節',level:'N4'},{word:'春',reading:'はる',meaning:'春天',level:'N4',ex:'春が好き。'},{word:'夏',reading:'なつ',meaning:'夏天',level:'N4'},{word:'秋',reading:'あき',meaning:'秋天',level:'N4'},{word:'冬',reading:'ふゆ',meaning:'冬天',level:'N4'},
+{word:'関する',reading:'かんする',meaning:'關於',level:'N3'},{word:'述べる',reading:'のべる',meaning:'陳述',level:'N3'},{word:'認める',reading:'みとめる',meaning:'承認、認可',level:'N3'},{word:'示す',reading:'しめす',meaning:'表示、展現',level:'N3',ex:'興味を示す。'},{word:'及ぼす',reading:'およぼす',meaning:'帶來（影響）',level:'N3'},{word:'含める',reading:'ふくめる',meaning:'包含',level:'N3'},{word:'断る',reading:'ことわる',meaning:'拒絕',level:'N3'},{word:'勧める',reading:'すすめる',meaning:'推薦、勸說',level:'N3'},{word:'防ぐ',reading:'ふせぐ',meaning:'預防、防止',level:'N3'},{word:'比べる',reading:'くらべる',meaning:'比較',level:'N3',ex:'比べられない。'},{word:'越える',reading:'こえる',meaning:'超過',level:'N3'},{word:'招く',reading:'まねく',meaning:'邀請、招致',level:'N3'},{word:'抱える',reading:'かかえる',meaning:'抱著、肩負',level:'N3'},{word:'整える',reading:'ととのえる',meaning:'整理、準備',level:'N3'},{word:'許す',reading:'ゆるす',meaning:'允許、原諒',level:'N3'},{word:'回す',reading:'まわす',meaning:'轉動、傳遞',level:'N3'},{word:'向く',reading:'むく',meaning:'朝向',level:'N3'},{word:'通じる',reading:'つうじる',meaning:'相通、理解',level:'N3'},{word:'快適',reading:'かいてき',meaning:'舒適',level:'N3'},{word:'柔らかい',reading:'やわらかい',meaning:'柔軟的',level:'N3'},{word:'硬い',reading:'かたい',meaning:'堅硬的',level:'N3'},{word:'複雑',reading:'ふくざつ',meaning:'複雜',level:'N3'},{word:'簡単',reading:'かんたん',meaning:'簡單',level:'N3',ex:'簡単な問題。'},{word:'危険',reading:'きけん',meaning:'危險',level:'N3'},{word:'安全',reading:'あんぜん',meaning:'安全',level:'N3'},{word:'有名',reading:'ゆうめい',meaning:'有名',level:'N3',ex:'有名な場所。'},{word:'人気',reading:'にんき',meaning:'受歡迎',level:'N3'},{word:'真面目',reading:'まじめ',meaning:'認真',level:'N3',ex:'真面目な人。'},{word:'静か',reading:'しずか',meaning:'安靜',level:'N3',ex:'静かな部屋。'},{word:'賑やか',reading:'にぎやか',meaning:'熱鬧',level:'N3'},{word:'状態',reading:'じょうたい',meaning:'狀態',level:'N3'},{word:'状況',reading:'じょうきょう',meaning:'狀況',level:'N3'},{word:'環境',reading:'かんきょう',meaning:'環境',level:'N3',ex:'環境を守る。'},{word:'影響',reading:'えいきょう',meaning:'影響',level:'N3'},{word:'関係',reading:'かんけい',meaning:'關係',level:'N3',ex:'関係がある。'},{word:'程度',reading:'ていど',meaning:'程度',level:'N3'},{word:'割合',reading:'わりあい',meaning:'比例、相對地',level:'N3'},{word:'傾向',reading:'けいこう',meaning:'傾向',level:'N3'},{word:'特徴',reading:'とくちょう',meaning:'特徵',level:'N3'},{word:'性質',reading:'せいしつ',meaning:'性質',level:'N3'},{word:'可能性',reading:'かのうせい',meaning:'可能性',level:'N3'},{word:'事実',reading:'じじつ',meaning:'事實',level:'N3',ex:'事実を確認する。'},{word:'判断',reading:'はんだん',meaning:'判斷',level:'N3'},{word:'比較',reading:'ひかく',meaning:'比較',level:'N3'},{word:'確認',reading:'かくにん',meaning:'確認',level:'N3',ex:'確認してください。'},{word:'処理',reading:'しょり',meaning:'處理',level:'N3'},{word:'対応',reading:'たいおう',meaning:'應對',level:'N3'},{word:'提案',reading:'ていあん',meaning:'提案',level:'N3'},{word:'要求',reading:'ようきゅう',meaning:'要求',level:'N3'},{word:'報告',reading:'ほうこく',meaning:'報告',level:'N3',ex:'報告をする。'},{word:'連絡',reading:'れんらく',meaning:'聯絡',level:'N3',ex:'連絡してください。'},{word:'相談',reading:'そうだん',meaning:'商量',level:'N3'},{word:'注意',reading:'ちゅうい',meaning:'注意',level:'N3',ex:'注意してください。'},{word:'目的',reading:'もくてき',meaning:'目的',level:'N3'},{word:'手段',reading:'しゅだん',meaning:'手段、方法',level:'N3'},{word:'経験',reading:'けいけん',meaning:'經驗',level:'N3',ex:'経験が大事。'},{word:'成功',reading:'せいこう',meaning:'成功',level:'N3'},{word:'失敗',reading:'しっぱい',meaning:'失敗',level:'N3',ex:'失敗から学ぶ。'},{word:'情報',reading:'じょうほう',meaning:'資訊',level:'N3',ex:'情報を集める。'},{word:'結果',reading:'けっか',meaning:'結果',level:'N3'},{word:'理由',reading:'りゆう',meaning:'理由',level:'N3',ex:'理由を教えて。'},{word:'方法',reading:'ほうほう',meaning:'方法',level:'N3'},{word:'意見',reading:'いけん',meaning:'意見',level:'N3'}];
+const SRS_KEY='jp_srs_v2',STATS_KEY='jp_stats_v2';
+let srsData={},dailyStats={date:'',correct:0,again:0,total:0};
+function loadSRS(){try{let r=localStorage.getItem(SRS_KEY);srsData=r?JSON.parse(r):{}}catch{srsData={}}try{let r=localStorage.getItem(STATS_KEY);if(r){dailyStats=JSON.parse(r);let t=new Date().toISOString().slice(0,10);if(dailyStats.date!==t)dailyStats={date:t,correct:0,again:0,total:0}}else dailyStats={date:new Date().toISOString().slice(0,10),correct:0,again:0,total:0}}catch{dailyStats={date:new Date().toISOString().slice(0,10),correct:0,again:0,total:0}}}
+function saveSRS(){localStorage.setItem(SRS_KEY,JSON.stringify(srsData));localStorage.setItem(STATS_KEY,JSON.stringify(dailyStats))}
+function getCard(id){if(!srsData[id])srsData[id]={interval:0,ease:2.5,reps:0,nextReview:0,lastReviewed:null};return srsData[id]}
+function srsStatus(id){let c=getCard(id);return c.reps===0?'new':c.reps<3?'learning':c.reps<5?'review':'mastered'}
+function reviewCard(id,gotit){let c=getCard(id),q=gotit?4:1;if(q>=3){if(c.reps===0)c.interval=1;else if(c.reps===1)c.interval=3;else c.interval=Math.round(c.interval*c.ease);c.reps++}else{c.reps=0;c.interval=0}c.ease=Math.max(1.3,c.ease+(.1-(5-q)*(.08+(5-q)*.02)));c.lastReviewed=Date.now();c.nextReview=q>=3?Date.now()+c.interval*864e5:Date.now()+6e5;dailyStats.total++;gotit?dailyStats.correct++:dailyStats.again++;saveSRS();return c}
+function resetAllSRS(){if(!confirm('すべての進捗をリセットしますか？（元に戻せません）'))return;srsData={};dailyStats={date:new Date().toISOString().slice(0,10),correct:0,again:0,total:0};saveSRS();location.reload()}
+const state={mode:'hiragana',subMode:'all',direction:'char-to-romaji',isFlipped:false,isAssessed:false,currentCard:null,queue:[],queueIndex:0,retryQueue:[],retryCount:{},sessionCorrect:0,sessionAgain:0,streak:0};
+function kanaId(m,c){return m+'_'+c}
+function vocabId(w){return'vocab_'+w}
+function getKanaData(){return state.mode==='hiragana'?HIRAGANA:KATAKANA}
+function getAllCards(){if(state.mode==='vocab'){let w=VOCAB;if(state.subMode!=='all')w=w.filter(v=>v.level===state.subMode);return w.map((v,i)=>({id:vocabId(v.word),type:'vocab',data:v,index:i}))}let d=getKanaData(),c;if(state.subMode==='all')c=[...d.basic,...d.dakuten,...d.handakuten,...d.youon];else if(state.subMode==='dakuten')c=[...d.dakuten,...d.handakuten];else c=[...(d[state.subMode]||[])];return c.map((x,i)=>({id:kanaId(state.mode,x.char),type:state.mode,data:x,index:i}))}
+function shuffle(a){let s=[...a];for(let i=s.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[s[i],s[j]]=[s[j],s[i]]}return s}
+function buildQueue(){let all=getAllCards(),now=Date.now(),due=[],nc=[];for(let c of all){let s=getCard(c.id);if(s.nextReview<=now&&s.reps>0)due.push(c);else if(s.reps===0)nc.push(c)}state.queue=[...shuffle(due),...shuffle(nc).slice(0,15)];state.queueIndex=0;state.retryQueue=[];state.retryCount={};return state.queue.length}
+function getNextCard(){if(state.retryQueue&&state.retryQueue.length>0){let now=Date.now(),idx=state.retryQueue.findIndex(r=>r.readyAt<=now);if(idx>=0){let c=state.retryQueue[idx];state.retryQueue.splice(idx,1);return c.card}}if(state.queueIndex<state.queue.length){let c=state.queue[state.queueIndex];state.queueIndex++;return c}return null}
+function enqueueRetry(card){if(!state.retryCount)state.retryCount={};state.retryCount[card.id]=(state.retryCount[card.id]||0)+1;let delays=[30,120,300],attempt=Math.min(state.retryCount[card.id]-1,delays.length-1);if(!state.retryQueue)state.retryQueue=[];state.retryQueue.push({card,readyAt:Date.now()+delays[attempt]*1e3})}
+function remainingCards(){let c=state.queue.length-state.queueIndex;if(state.retryQueue)c+=state.retryQueue.filter(r=>r.readyAt<=Date.now()).length;return Math.max(0,c)}
+function renderCard(card){state.currentCard=card;state.isFlipped=false;state.isAssessed=false;let ci=document.getElementById('cardInner'),aa=document.getElementById('assessArea'),th=document.getElementById('tapHint'),es=document.getElementById('emptyState'),cw=document.getElementById('cardWrapper');aa.classList.add('hidden');es.classList.add('hidden');cw.classList.remove('hidden');th.classList.remove('hidden');ci.classList.remove('flipped');let ss=srsStatus(card.id);document.getElementById('frontSrsBadge').textContent={new:'新規',learning:'復習中',review:'定着中',mastered:'マスター'}[ss]||'新規';document.getElementById('frontSrsBadge').className='srs-badge '+ss+' mb-2';if(card.type==='vocab'){document.getElementById('frontChar').textContent=card.data.word;document.getElementById('frontChar').className='char-main text-[#1e293b]';document.getElementById('frontSub').textContent=card.data.level}else{if(state.direction==='char-to-romaji'){document.getElementById('frontChar').textContent=card.data.char;document.getElementById('frontChar').style.fontSize=''}else{document.getElementById('frontChar').textContent=card.data.romaji;document.getElementById('frontChar').className='char-main text-[#1e293b]';document.getElementById('frontChar').style.fontSize='clamp(3rem,12vw,5rem)'}document.getElementById('frontSub').textContent=''}updateProgress()}
+function renderCardBack(card){let d=card.data,ba=document.getElementById('backAnswer'),bs=document.getElementById('backSub'),bt=document.getElementById('backTip');if(card.type==='vocab'){ba.textContent=d.meaning;ba.style.fontSize='clamp(1.5rem,6vw,2.5rem)';bs.textContent='【'+d.reading+'】';if(d.ex){bt.textContent='例文：'+d.ex;bt.className='char-tip';bt.classList.remove('hidden')}else{bt.classList.add('hidden')}}else{if(state.direction==='char-to-romaji'){ba.textContent=d.romaji;ba.style.fontSize=''}else{ba.textContent=d.char;ba.style.fontSize=''}let tip=getTip(d.romaji);if(tip){bt.textContent='💡 '+tip;bt.className='char-tip';bt.classList.remove('hidden')}else{bt.classList.add('hidden')}bs.textContent=''}}
+function flipCard(){if(state.isAssessed||!state.currentCard||state.isFlipped)return;state.isFlipped=true;document.getElementById('cardInner').classList.add('flipped');renderCardBack(state.currentCard);document.getElementById('tapHint').classList.add('hidden');document.getElementById('assessArea').classList.remove('hidden');document.getElementById('btnGotit').disabled=false;document.getElementById('btnAgain').disabled=false}
+function assessCard(result){if(state.isAssessed||!state.currentCard)return;state.isAssessed=true;document.getElementById('btnGotit').disabled=true;document.getElementById('btnAgain').disabled=true;let card=state.currentCard,gotit=result==='gotit';reviewCard(card.id,gotit);if(gotit){state.sessionCorrect++;state.streak++}else{state.sessionAgain++;state.streak=0;enqueueRetry(card)}updateStats();let aa=document.getElementById('assessArea');aa.innerHTML=gotit?'<div class="text-center text-[#22c55e] font-bold text-lg bounce-in">✓ わかった！</div>':'<div class="text-center text-[#f97316] font-bold text-lg shake">もう一度！</div>';if(state.streak>0&&state.streak%5===0)burstConfetti();setTimeout(()=>{aa.innerHTML='';aa.classList.add('hidden');advanceToNext()},gotit?500:900)}
+function advanceToNext(){let next=getNextCard();if(next){document.getElementById('assessArea').innerHTML='<button id="btnAgain" class="assess-btn btn-again" onclick="assessCard(\'again\')">🔄 もう一度</button><button id="btnGotit" class="assess-btn btn-gotit" onclick="assessCard(\'gotit\')">✅ わかった</button>';let cw=document.getElementById('cardWrapper');cw.classList.remove('slide-up');void cw.offsetWidth;cw.classList.add('slide-up');renderCard(next)}else showSessionComplete()}
+function showSessionComplete(){document.getElementById('cardWrapper').classList.add('hidden');document.getElementById('assessArea').classList.add('hidden');document.getElementById('tapHint').classList.add('hidden');document.getElementById('emptyState').classList.remove('hidden');let t=state.sessionCorrect+state.sessionAgain,pct=t>0?Math.round(state.sessionCorrect/t*100):0,msg='このセッションで '+t+' 枚のカードを復習しました。';if(t>0)msg+=' 正解率 '+pct+'%';let due=getAllCards().filter(c=>getCard(c.id).nextReview<=Date.now()).length;if(due>0)msg+=' あと '+due+' 枚の復習あり';else msg+=' 🎉 すべて終了！';document.getElementById('emptyStateMsg').textContent=msg;burstConfetti()}
+function burstConfetti(){let cl=['#dc2626','#22c55e','#3b82f6','#f97316','#a855f7','#eab308','#ec4899'];for(let i=0;i<30;i++){let e=document.createElement('div');e.className='confetti-piece';e.style.left=(10+Math.random()*80)+'%';e.style.top=(30+Math.random()*30)+'%';e.style.background=cl[Math.floor(Math.random()*cl.length)];e.style.borderRadius=Math.random()>.5?'50%':'2px';e.style.width=(6+Math.random()*8)+'px';e.style.height=(6+Math.random()*8)+'px';e.style.animationDuration=(1+Math.random())+'s';e.style.animationDelay=(Math.random()*.3)+'s';document.body.appendChild(e);setTimeout(()=>e.remove(),2000)}}
+function switchMode(mode){state.mode=mode;state.subMode='all';state.isFlipped=false;state.isAssessed=false;document.getElementById('assessArea').classList.add('hidden');document.getElementById('tapHint').classList.remove('hidden');document.getElementById('emptyState').classList.add('hidden');document.getElementById('cardWrapper').classList.remove('hidden');document.querySelectorAll('.mode-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===mode));document.getElementById('directionBtn').classList.toggle('hidden',mode==='vocab');updateSubTabs();buildQueue();let first=getNextCard();if(first){let cw=document.getElementById('cardWrapper');cw.classList.remove('slide-up');void cw.offsetWidth;cw.classList.add('slide-up');renderCard(first)}else showSessionComplete()}
+function switchSubMode(sub){state.subMode=sub;state.isFlipped=false;state.isAssessed=false;document.getElementById('assessArea').classList.add('hidden');document.getElementById('tapHint').classList.remove('hidden');document.getElementById('emptyState').classList.add('hidden');document.getElementById('cardWrapper').classList.remove('hidden');document.querySelectorAll('.sub-tab').forEach(t=>t.classList.toggle('active',t.dataset.sub===sub));buildQueue();let first=getNextCard();if(first){let cw=document.getElementById('cardWrapper');cw.classList.remove('slide-up');void cw.offsetWidth;cw.classList.add('slide-up');renderCard(first)}else showSessionComplete()}
+function toggleDirection(){state.direction=state.direction==='char-to-romaji'?'romaji-to-char':'char-to-romaji';document.getElementById('directionBtn').textContent=state.direction==='char-to-romaji'?'文字 → ローマ字':'ローマ字 → 文字';state.isFlipped=false;state.isAssessed=false;document.getElementById('cardInner').classList.remove('flipped');document.getElementById('assessArea').classList.add('hidden');document.getElementById('tapHint').classList.remove('hidden');if(state.currentCard)renderCard(state.currentCard)}
+function updateSubTabs(){let c=document.getElementById('subTabs');if(state.mode==='vocab'){let n5=VOCAB.filter(w=>w.level==='N5').length,n4=VOCAB.filter(w=>w.level==='N4').length,n3=VOCAB.filter(w=>w.level==='N3').length;c.innerHTML='<button class="sub-tab active" data-sub="all" onclick="switchSubMode(\'all\')">全部 ('+(n5+n4+n3)+')</button><button class="sub-tab" data-sub="N5" onclick="switchSubMode(\'N5\')">N5 ('+n5+')</button><button class="sub-tab" data-sub="N4" onclick="switchSubMode(\'N4\')">N4 ('+n4+')</button><button class="sub-tab" data-sub="N3" onclick="switchSubMode(\'N3\')">N3 ('+n3+')</button>'}else{let d=getKanaData(),t=d.basic.length+d.dakuten.length+d.handakuten.length+d.youon.length;c.innerHTML='<button class="sub-tab active" data-sub="all" onclick="switchSubMode(\'all\')">全部 ('+t+')</button><button class="sub-tab" data-sub="basic" onclick="switchSubMode(\'basic\')">基本 ('+d.basic.length+')</button><button class="sub-tab" data-sub="dakuten" onclick="switchSubMode(\'dakuten\')">濁音 ('+(d.dakuten.length+d.handakuten.length)+')</button><button class="sub-tab" data-sub="youon" onclick="switchSubMode(\'youon\')">拗音 ('+d.youon.length+')</button>'}}
+function resetSession(){state.sessionCorrect=0;state.sessionAgain=0;state.streak=0;document.getElementById('emptyState').classList.add('hidden');document.getElementById('cardWrapper').classList.remove('hidden');buildQueue();let first=getNextCard();if(first)renderCard(first);else showSessionComplete();updateStats()}
+function updateStats(){document.getElementById('sessionCorrect').textContent=state.sessionCorrect;document.getElementById('sessionAgain').textContent=state.sessionAgain;document.getElementById('streakCount').textContent=state.streak;document.getElementById('todayCount').textContent=dailyStats.total||0}
+function updateProgress(){let all=getAllCards(),t=all.length,rem=remainingCards(),pct=t>0?Math.round((t-rem)/t*100):0;document.getElementById('progressBar').style.width=Math.min(100,pct)+'%';document.getElementById('progressLabel').textContent=(t-rem)+' / '+t;let mastered=all.filter(c=>srsStatus(c.id)==='mastered').length,learning=all.filter(c=>{let s=srsStatus(c.id);return s==='learning'||s==='review'}).length;document.getElementById('srsStatusBadge').textContent=mastered>0||learning>0?'マスター '+mastered+' · 復習中 '+learning:''}
+function resetAllProgress(){resetAllSRS()}
+document.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!state.isFlipped)flipCard()}if(e.key==='1'&&state.isFlipped&&!state.isAssessed)assessCard('gotit');if(e.key==='2'&&state.isFlipped&&!state.isAssessed)assessCard('again')});
+loadSRS();updateSubTabs();buildQueue();let firstCard=getNextCard();if(firstCard)renderCard(firstCard);else showSessionComplete();updateStats();
   </script>
 </body>
 </html>
